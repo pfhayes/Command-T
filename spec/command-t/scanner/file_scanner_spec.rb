@@ -104,6 +104,13 @@ shared_examples "file_scanners" do
       scanner.paths
     end
   end
+
+  describe ':max_depth option' do
+    it 'does not descend below "max_depth" levels' do
+      @scanner = CommandT::RecursiveFileScanner.new dir, :max_depth => 1
+      @scanner.paths.should =~ %w(bar/abc bar/xyz baz bing foo/beta)
+    end
+  end
 end
 
 describe CommandT::RecursiveFileScanner do
@@ -115,13 +122,6 @@ describe CommandT::RecursiveFileScanner do
   include_examples "file_scanners" do
     def scanner
       @scanner
-    end
-  end
-
-  describe ':max_depth option' do
-    it 'does not descend below "max_depth" levels' do
-      @scanner = CommandT::RecursiveFileScanner.new dir, :max_depth => 1
-      @scanner.paths.should =~ %w(bar/abc bar/xyz baz bing foo/beta)
     end
   end
 end
