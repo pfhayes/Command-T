@@ -35,9 +35,9 @@ module CommandT
       @paths_keys           = []
       @path                 = path
       @max_files            = options[:max_files] || 30_000
-      @wild_ignore          = options[:wild_ignore]
       @max_caches           = options[:max_caches] || 1
       @base_wild_ignore     = VIM::wild_ignore
+      @wild_ignore          = options[:wild_ignore] || @base_wild_ignore
     end
 
     def paths
@@ -73,13 +73,19 @@ module CommandT
     end
 
     def path_excluded? path, prefix_len
-      path = path[(prefix_len + 1)..-1]
-      path = VIM::escape_for_single_quotes path
-      ::VIM::evaluate("empty(expand(fnameescape('#{path}')))").to_i == 1
+      if @wild_ignore && @wild_ignore != ''
+        path = path[(prefix_len + 1)..-1]
+        path = VIM::escape_for_single_quotes path
+        ::VIM::evaluate("empty(expand(fnameescape('#{path}')))").to_i == 1
+      else 
+        false
+      end
     end
 
     def set_wild_ignore(ignore)
-      ::VIM::command("set wildignore=#{ignore}") if @wild_ignore
+      if @wild_ignore && @wild_ignore != ''
+        ::VIM::command("set wildignore=#{ignore}")
+      end
     end
   end # class FileScanner
 end # module CommandT

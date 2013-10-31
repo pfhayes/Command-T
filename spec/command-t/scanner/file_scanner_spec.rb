@@ -76,9 +76,31 @@ shared_examples "file_scanners" do
   end
 
   describe "'wildignore' exclusion" do
-    it "calls on VIM's expand() function for pattern filtering" do
-      scanner.send(:initialize, dir)
+    it "calls on VIM's expand() function for pattern filtering when provided" do
+      stub(::VIM).evaluate("exists(\"&wildignore\")") { 0 }
+      stub(::VIM).evaluate(/expand\(.+\)/) { '0' }
+      stub(::VIM).evaluate(/^&wildignore$/) { '' }
+      stub(::VIM).wild_ignore { '' }
+      scanner.send(:initialize, dir, { :wild_ignore => 'x' })
+      stub(::VIM).command(/set wildignore=/) { '' }
       mock(::VIM).evaluate(/expand\(.+\)/).times(7)
+      scanner.paths
+    end
+
+    it "calls on VIM's expand() function for pattern filtering when VIM has a wildignore" do
+      stub(::VIM).evaluate("exists(\"&wildignore\")") { 1 }
+      stub(::VIM).evaluate(/expand\(.+\)/) { '0' }
+      stub(::VIM).evaluate(/^&wildignore$/) { 'z' }
+      scanner.send(:initialize, dir, { })
+      stub(::VIM).command(/set wildignore=/) { '' }
+      mock(::VIM).evaluate(/expand\(.+\)/).times(7)
+      scanner.paths
+    end
+
+    it "does not call on VIM's expand() function when there is no wildignore" do
+      stub(::VIM).wild_ignore { '' }
+      scanner.send(:initialize, dir, { :wild_ignore => nil })
+      mock(::VIM).evaluate(/expand\(.+\)/).times(0)
       scanner.paths
     end
   end
@@ -88,10 +110,6 @@ describe CommandT::RecursiveFileScanner do
   before do
     @scanner = CommandT::RecursiveFileScanner.new dir
 
-    # scanner will call VIM's expand() function for exclusion filtering
-    stub(::VIM).evaluate(/exists/) { 1 }
-    stub(::VIM).evaluate(/expand\(.+\)/) { '0' }
-    stub(::VIM).evaluate(/wildignore/) { '' }
   end
 
   include_examples "file_scanners" do
@@ -111,11 +129,6 @@ end
 describe CommandT::GitScanner do
   before do
     @scanner = CommandT::GitScanner.new dir
-
-    # scanner will call VIM's expand() function for exclusion filtering
-    stub(::VIM).evaluate(/exists/) { 1 }
-    stub(::VIM).evaluate(/expand\(.+\)/) { '0' }
-    stub(::VIM).evaluate(/wildignore/) { '' }
   end
 
   include_examples "file_scanners" do
