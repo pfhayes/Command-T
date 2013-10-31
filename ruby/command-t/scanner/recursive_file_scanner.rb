@@ -27,48 +27,16 @@ require 'command-t/scanner/file_scanner'
 module CommandT
   # Reads the current directory recursively for the paths to all regular files.
   class RecursiveFileScanner < FileScanner
-    class FileLimitExceeded < ::RuntimeError; end
     attr_accessor :path
 
     def initialize path = Dir.pwd, options = {}
       super path, options
       @paths_keys           = []
       @max_depth            = options[:max_depth] || 15
-      @max_caches           = options[:max_caches] || 1
       @scan_dot_directories = options[:scan_dot_directories] || false
     end
 
-    def paths
-      return @paths[@path] if @paths.has_key?(@path)
-      begin
-        ensure_cache_under_limit
-        @paths[@path] = []
-        @depth        = 0
-        @files        = 0
-        @prefix_len   = @path.chomp('/').length
-        set_wild_ignore(@wild_ignore)
-        add_paths_for_directory @path, @paths[@path]
-      rescue FileLimitExceeded
-      ensure
-        set_wild_ignore(@base_wild_ignore)
-      end
-      @paths[@path]
-    end
-
-    def flush
-      @paths = {}
-    end
-
   private
-
-    def ensure_cache_under_limit
-      # Ruby 1.8 doesn't have an ordered hash, so use a separate stack to
-      # track and expire the oldest entry in the cache
-      if @max_caches > 0 && @paths_keys.length >= @max_caches
-        @paths.delete @paths_keys.shift
-      end
-      @paths_keys << @path
-    end
 
     def looped_symlink? path
       if File.symlink?(path)

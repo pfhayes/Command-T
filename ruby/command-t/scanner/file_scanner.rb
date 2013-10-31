@@ -27,6 +27,7 @@ require 'command-t/scanner'
 module CommandT
   # Reads the current directory recursively for the paths to all regular files.
   class FileScanner < Scanner
+    class FileLimitExceeded < ::RuntimeError; end
     attr_accessor :path
 
     def initialize path = Dir.pwd, options = {}
@@ -35,6 +36,7 @@ module CommandT
       @path                 = path
       @max_files            = options[:max_files] || 30_000
       @wild_ignore          = options[:wild_ignore]
+      @max_caches           = options[:max_caches] || 1
       @base_wild_ignore     = VIM::wild_ignore
     end
 
@@ -60,6 +62,15 @@ module CommandT
     end
 
   protected
+
+    def ensure_cache_under_limit
+      # Ruby 1.8 doesn't have an ordered hash, so use a separate stack to
+      # track and expire the oldest entry in the cache
+      if @max_caches > 0 && @paths_keys.length >= @max_caches
+        @paths.delete @paths_keys.shift
+      end
+      @paths_keys << @path
+    end
 
     def path_excluded? path, prefix_len
       path = path[(prefix_len + 1)..-1]

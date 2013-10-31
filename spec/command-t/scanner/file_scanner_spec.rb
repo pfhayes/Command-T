@@ -68,6 +68,13 @@ shared_examples "file_scanners" do
     end
   end
 
+  describe ':max_files option' do
+    it 'does not descend scan more than "max_files" files' do
+      @scanner = CommandT::RecursiveFileScanner.new dir, :max_files => 1
+      @scanner.paths.should =~ %w(bar/abc)
+    end
+  end
+
   describe "'wildignore' exclusion" do
     it "calls on VIM's expand() function for pattern filtering" do
       scanner.send(:initialize, dir)

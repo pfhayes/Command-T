@@ -30,30 +30,23 @@ module CommandT
   class GitScanner < FileScanner
     attr_accessor :path
 
-    def paths
-      return @paths[@path] if @paths.has_key?(@path)
-      begin
-        Dir.chdir(@path)
-        command = "git ls-files --exclude-standard"
-        stdin, stdout, stderr = Open3.popen3(command)
+    def add_paths_for_directory dir, accumulator
+      Dir.chdir(@path)
+      command = "git ls-files --exclude-standard"
+      stdin, stdout, stderr = Open3.popen3(command)
 
-        set_wild_ignore(@wild_ignore)
-        all_files = stdout.readlines.
-          take(@max_files).
-          select { |x| not x.nil? }.
-          map { |x| x.chomp }.
-          select { |x| not path_excluded? x, prefix_len = 0 }.
-          to_a
-        if err = stderr.gets
-          raise ScannerError.new("Git error: %s" % err.chomp)
-        end
-
-      ensure
-        set_wild_ignore(@base_wild_ignore)
+      set_wild_ignore(@wild_ignore)
+      all_files = stdout.readlines.
+        take(@max_files).
+        select { |x| not x.nil? }.
+        map { |x| x.chomp }.
+        select { |x| not path_excluded? x, prefix_len = 0 }.
+        to_a
+      if err = stderr.gets
+        raise ScannerError.new("Git error: %s" % err.chomp)
       end
 
       @paths[@path] = all_files
-      @paths[@path]
     end
 
     def flush
